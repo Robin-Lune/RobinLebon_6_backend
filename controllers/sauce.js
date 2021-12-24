@@ -28,6 +28,7 @@ exports.getOneSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
+  console.log(req.body);
   Sauce.findOne({ _id: req.params.id })
     .then((sauce) => {
       if (!sauce) {
@@ -38,14 +39,19 @@ exports.modifySauce = (req, res, next) => {
           error: new Error("Requête non autorisée !"),
         });
       }
-  const sauceObject = req.file
-    ? {
-        ...JSON.parse(req.body.sauce),
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${
-          req.file.filename
-        }`,
-      }
-    : { ...req.body };
+      let sauceObject = req.body;
+      const sauceFile = req.file;
+        if (sauceFile) {
+          sauceObjet = JSON.parse(req.body.sauce);
+          const filename = sauce.imageUrl.split("/images/")[1];
+          fs.unlink(`images/${filename}`, (err) => {
+            if (err) throw err;
+            console.log('ancienne image supprimée');
+          });
+          sauceObject.imageUrl = `${req.protocol}://${req.get("host")}/images/${
+            req.file.filename
+          }`;
+        };
   Sauce.updateOne(
     { _id: req.params.id },
     { ...sauceObject, _id: req.params.id }
@@ -91,7 +97,7 @@ exports.likeSauce = (req, res, next) => {
         case 1:
           if (sauce.usersLiked.includes(req.auth.userId)) {
             return res.status(401).json({
-              error: new Error("Vous avez déjà aimé cette sauce !"),
+              error: new Error("Vous avez déjà liké cette sauce !"),
             });
           }
           Sauce.updateOne(
